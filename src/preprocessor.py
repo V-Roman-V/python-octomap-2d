@@ -16,8 +16,9 @@ class PreprocConfig:
 
 class Preprocessor:
     """
-    Turns 3D points (N,3) into a 2D scan (N2,2) in the same WORLD frame.
-    Steps: z filter in SENSOR orientation -> optional outlier filter (GLOBAL XY).
+    Turns 3D points (N,3) into a 2D scan (N2,2) in the WORLD frame.
+    If the cloud is in GLOBAL frame, we first transform to SENSOR for Z/range/FOV filtering.
+    If the cloud is in SENSOR frame, we filter directly, then transform to GLOBAL.
     """
     def __init__(self, cfg: PreprocConfig):
         self.cfg = cfg
@@ -64,16 +65,18 @@ class Preprocessor:
         keep_mask = (angles >= min_fov) & (angles <= max_fov)
         return xy[keep_mask]
 
-    def process(self, points_xyz: np.ndarray, transform: Transform) -> np.ndarray:
+    def process(self, points_xyz: np.ndarray, transform: Transform, cloud_in_sensor_frame: bool = False) -> np.ndarray:
         """
-        :param points_xyz: (N,3) float32 in GLOBAL frame
+        :param points_xyz: (N,3) float32 in GLOBAL frame (default) or SENSOR frame
         :param transform: sensor->global (p_g = R p_s + t)
+        :param cloud_in_sensor_frame: True if input points are already in SENSOR frame
         :return: 2D scan (M,2) in GLOBAL frame
         """
         if points_xyz.ndim != 2 or points_xyz.shape[1] != 3:
             raise ValueError("points_xyz must be (N,3)")
 
-        local_pts = transform.inverse().transform(points_xyz)
+        # If cloud is already in SENSOR frame, use as-is; else convert GLOBAL->SENSOR.
+        local_pts = points_xyz if cloud_in_sensor_frame else transform.inverse().transform(points_xyz)
 
         # Apply Z-axis filtering
         local_pts = self._filter_z_axis(local_pts)
@@ -84,8 +87,9 @@ class Preprocessor:
         xy_local = self._fov_filter(xy_local)
         xy_local = self._density_filter(xy_local)
 
-        # Transform to global
-        xyz_local = np.hstack([xy_local, np.ones((xy_local.shape[0], 1), dtype=xy_local.dtype)])
+        
+        # Transform to GLOBAL
+        xyz_local = np.hstack([xy_local, np.zeros((xy_local.shape[0], 1), dtype=xy_local.dtype)])
         xyz_global = transform.transform(xyz_local)
         xy_global = xyz_global[:, :2]
         return xy_global

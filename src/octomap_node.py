@@ -131,7 +131,7 @@ class OctomapServerPy(Node):
         if origin is None:
             return
 
-        xy = self.pre.process(pts3d, origin)
+        xy = self.pre.process(pts3d, origin, self.cfg.io.cloud_in_sensor_frame)
         t3 = time.perf_counter()
 
         self.map.integrate_scan(
@@ -139,7 +139,7 @@ class OctomapServerPy(Node):
             origin_xy=origin.translation[:2],
             raycast_range=self.cfg.map.raycast_range,
             do_raycast=bool(self.cfg.map.raycast_free_space),
-            angle_bin_deg=bool(self.cfg.map.angle_bin_deg),
+            angle_bin_deg=float(self.cfg.map.angle_bin_deg),
             use_map_occlusion=bool(self.cfg.map.use_map_occlusion),
             clear_occluder=bool(self.cfg.map.clear_occluder),
         )

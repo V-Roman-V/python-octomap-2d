@@ -4,6 +4,8 @@ io:
   sensor_frame_id: "velodyne"        # Sensor frame id used to fetch the sensor origin for raycasting
 
   input_topic: "/undistorted_points"        # Input point cloud topic (PointCloud2, points already in map frame)
+  cloud_in_sensor_frame: false              # false = input cloud is already in map/global frame
+
   output_topic: "/projected_map"            # Output OccupancyGrid topic
   output_prob_topic: "/projected_map_prob"  # Output probability grid topic
 
