@@ -1,0 +1,16 @@
+services:
+  octomap_ros2:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    network_mode: host
+    restart: unless-stopped
+    environment:
+      - ROS_DOMAIN_ID=${ROS_DOMAIN_ID:-0}
+      - RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - ./config/configs.yaml:/app/config/octomap.yaml:rw
+      - ./src:/app/src:rw
+    working_dir: /app
+    command: ["python3", "src/octomap_node.py"]
